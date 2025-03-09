@@ -1,0 +1,396 @@
+>>>malloy
+source: TrainingData is duckdb.table('./activities14.csv') extend {
+    measure:
+    total_miles is sum(`Miles`)
+    avg_weekday is avg(`Miles`)
+    avg_heartrate is avg(`Average Heart Rate`)
+    actvity_count is count(`Activity Count`)
+    avg_temp is avg(`Weather Temperature`)* 1.8 +32
+    total_cals is sum(`Calories`)
+    avg_humidity is avg(`Humidity`)
+    avg_cadence is avg(`Average Cadence`)
+    total_elevation is sum(`Elevation Gain`)
+    avg_elevation is avg(`Elevation Gain`)
+    avg_time is avg(`Moving Time`)/60
+    total_time is sum(`Moving Time`)/60
+    avg_pace is (sum(`Moving Time`)/60) /sum(`Miles`)
+    avg_speed is avg(`Average Speed`)
+    longest_run is max(`Miles`)
+
+}
+>>>markdown
+Heatmap (Miles)
+>>>malloy
+# shape_map
+run: TrainingData -> {
+    group_by: `State`
+    aggregate: total_miles
+}
+>>>markdown
+Number of Activities by State
+>>>malloy
+run: TrainingData -> {
+    group_by: `State`
+    aggregate: activity_count is count()
+    Having: State != null
+}
+>>>markdown
+Breakdown of Activites by Type
+>>>malloy
+run: TrainingData -> {
+    group_by: `Activity Type`
+    aggregate: activity_count is count(), total_miles, total_time, total_cals, total_elevation
+
+}
+>>>markdown
+Total Miles Run, Total Total Time and Total Elevation based on each state. No surprises from Iowa, and Florida. 
+>>>malloy
+run: TrainingData -> {
+    group_by: `Activity Type`, `State`
+    aggregate: total_miles, total_time, total_cals, total_elevation
+    where: `Activity Type` = "Run"
+    Having: State != null
+    order_by: total_miles desc
+    
+
+}
+>>>markdown
+Breakdown of Miles per Year
+>>>malloy
+# bar_chart
+
+run: TrainingData -> {
+    group_by: `Year`
+    aggregate: total_miles
+    where: `Activity Type` = "Run"
+    order_by: `Year`
+
+}
+>>>markdown
+Avg Cadence over the Years
+>>>malloy
+# line_chart
+run: TrainingData -> {
+  where: `Activity Type` = 'Run'
+  group_by: 
+    Date_year is `Date`.year
+    `Activity Type`
+  aggregate: 
+    avg_cadence
+}
+>>>markdown
+Runnning Breakdown by Year (Totals)
+>>>malloy
+run: TrainingData -> {
+  where: `Activity Type` = 'Run'
+  group_by: 
+    Date_year is `Date`.year
+    `Activity Type`
+  aggregate: total_miles, actvity_count is count(), total_elevation, total_cals
+  order_by: Date_year asc
+}
+>>>markdown
+Runnning Breakdown by Year (Averages)
+>>>malloy
+
+run: TrainingData -> {
+  where: `Activity Type` = 'Run'
+  group_by: 
+    `Activity Type`
+    Date_year is `Date`.year
+  aggregate: avg_weekday, avg_cadence, avg_heartrate,
+  order_by: Date_year asc
+}
+>>>markdown
+Biking Breakdown by Year. I cross trainined a lot in 2022 and 2023 as a result of a stress fractures. 
+>>>malloy
+run: TrainingData -> {
+  group_by: 
+    `Activity Type`
+    Date_year is `Date`.year
+  aggregate: total_miles,
+  order_by: Date_year asc
+  where: `Activity Type` = "Ride"
+
+}
+>>>markdown
+Swimming Breakdown by Year. (Actually in Meters).
+>>>malloy
+run: TrainingData -> {
+  group_by: 
+    `Activity Type`
+    Date_year is `Date`.year
+  aggregate: total_miles
+  order_by: Date_year asc
+  where: `Activity Type` = "Swim"
+Having: total_miles>0
+
+}
+>>>markdown
+Average Heartrate Biking. Significantly lower than running. 
+>>>malloy
+run: TrainingData -> {
+    group_by: `Activity Type`
+    aggregate: avg_weekday, avg_heartrate
+    where: `Activity Type` = "Ride"
+
+}
+>>>markdown
+Average Miles Run by Day of Week (2024).
+>>>malloy
+# bar_chart
+run: TrainingData -> {
+    group_by: `Activity Type`, `Weekday`, `Year`
+    aggregate: avg_weekday
+    where: `Activity Type` = "Run" 
+    where:`Year`= "2024"
+
+}
+>>>markdown
+Average Miles, Average Pace and Average Heartrate by day of the week (all time). Sunday us our long run day, which makes sense why it is longer. Monday, Wednesday and Friday mileage is an Average of 2 Activities; typically one 4 mile run and one 8 mile run. 
+>>>malloy
+run: TrainingData -> {
+    group_by: `Activity Type`, `Weekday`
+    aggregate: avg_weekday, avg_pace, avg_heartrate,
+    where: `Activity Type` = "Run" 
+
+}
+>>>markdown
+Average Miles, Average Pace and Average Heartrate by day of the week in 2023. Sunday us our long run day, which makes sense why it is longer. Monday, Wednesday and Friday mileage is an Average of 2 Activities; typically one 4 mile run and one 8 mile run. 
+>>>malloy
+run: TrainingData -> {
+  group_by: 
+    Date_year is `Date`.year
+    `Activity Type`
+    `Weekday`
+  aggregate: 
+    avg_heartrate
+    avg_weekday
+    avg_pace
+  order_by: Date_year asc
+    where: `Activity Type` = "Run" 
+    where:`Year`= "2023"
+}
+>>>markdown
+Average Miles, Average Pace and Average Heartrate by day of the week in 2024. Sunday us our long run day, which makes sense why it is longer. Monday, Wednesday and Friday mileage is an Average of 2 Activities; typically one 4 mile run and one 8 mile run. 
+>>>malloy
+run: TrainingData -> {
+  group_by: 
+    Date_year is `Date`.year
+    `Activity Type`
+    `Weekday`
+  aggregate: 
+    avg_heartrate
+    avg_weekday
+    avg_pace
+    where: `Activity Type` = "Run" 
+    where:`Year`= "2024"
+}
+>>>markdown
+Average Heatrate by Year. The slight decline over time can attributed to higher mileage over the years. 2019 and 2025 do not have sufficent data.
+>>>malloy
+# line_chart
+run: TrainingData -> {
+    group_by: `Year`
+    aggregate: avg_heartrate
+    where: `Activity Type` = "Run" 
+    order_by: `Year`
+
+}
+>>>markdown
+Bar Graph of Daily Mileage during the 2024 Cross Country Season. 
+>>>malloy
+# bar_chart
+run: TrainingData -> {
+  where: `Date`.day ? @2024-08-05 to @2024-11-04
+  group_by: `Date`
+  aggregate: total_miles
+}
+>>>markdown
+Bar Graph of Daily Mileage during the 2023 Cross Country Season. 
+>>>malloy
+# bar_chart
+run: TrainingData -> {
+  where: `Date`.day ? @2023-08-05 to @2023-11-04
+  group_by: `Date`
+  aggregate: total_miles
+}
+>>>markdown
+Avg Training Pace During the 2023 Cross Country Season
+>>>malloy
+# line_chart
+run: TrainingData -> {
+  where: `Date`.day ? @2023-08-05 to @2023-11-04
+  group_by: `Date`
+  aggregate: avg_pace
+Having: avg_pace <10
+}
+>>>markdown
+Total Miles During the 2024 Cross Country Season
+>>>malloy
+run: TrainingData -> {
+  where: `Date`.day ? @2024-08-05 to @2024-11-04
+  aggregate: total_miles 
+}
+>>>markdown
+Total Miles During the 2023 Cross Country Season
+>>>malloy
+run: TrainingData -> {
+  where: `Date`.day ? @2023-08-05 to @2023-11-04
+  aggregate: total_miles
+}
+>>>markdown
+For this query, I wanted to look at days where my Sunday long run is over 15 Miles. Generally our training pace is faster than our Avg Training Pace during the week, especially during the summer. 
+>>>malloy
+run: TrainingData -> {
+  group_by: Date_day is `Date`.day,`Weekday`
+  aggregate: total_miles, avg_pace
+  Having: total_miles >=15
+  where: `Activity Type` = "Run"
+  where: `Weekday` = "Sunday"
+}
+>>>markdown
+Avgerage Training Temp over the last 5 years
+>>>malloy
+# line_chart
+run: TrainingData -> {
+  where: `Activity Type` = 'Run'
+  group_by: 
+    Date_month is `Date`.month
+    `Activity Type`
+  aggregate: avg_temp
+  Having: avg_temp >=0
+}
+>>>markdown
+Over Winter Break last year, I was training in Florida, to come back to Spokane during a wicked cold snap. 
+>>>malloy
+# line_chart
+run: TrainingData -> {
+  where: `Date`.day ? @2024-01-05 to @2024-01-19
+  group_by: `Date`
+  aggregate: avg_temp
+}
+>>>markdown
+I remember Janury 14th as being one of the coldest runs of my life. 
+>>>malloy
+run: TrainingData -> {
+  where: `Date`.day ? @2024-01-05 to @2024-01-19
+  group_by: `Date`
+  aggregate: avg_temp, total_miles
+  order_by: avg_temp asc
+}
+>>>markdown
+Humidity by State.
+>>>malloy
+# bar_chart
+run: TrainingData -> {
+  where: `Activity Type` = 'Run'
+  group_by: 
+    `Activity Type`
+    State
+  # percent
+  aggregate: avg_humidity
+}
+>>>markdown
+No Surprice, Coastal States are among the most humid, while Arizona is the least humid. 
+>>>malloy
+run: TrainingData -> {
+  where: `Activity Type` = 'Run'
+  group_by: 
+    `Activity Type`
+    State
+  # percent
+  aggregate: avg_humidity
+Having: State != null
+}
+>>>markdown
+Highest Mileage Weeks
+>>>malloy
+run: TrainingData -> {
+  group_by: 
+    Date_week is `Date`.week
+    Date_year is `Date`.year
+    `Activity Type`
+  aggregate: total_miles
+  Having: total_miles >0
+  order_by: total_miles desc
+  where: `Activity Type` = "Run"
+
+}
+>>>markdown
+Total Miles Per Month over the Years. Gaps are due to 3 Major Injuries.
+>>>malloy
+# line_chart
+run: TrainingData -> {
+  where: `Activity Type` = 'Run'
+  group_by: 
+    Date_week is `Date`.month
+    Date_year is `Date`.year
+    `Activity Type`
+  aggregate: total_miles
+}
+>>>markdown
+Monthly Running Breakdown 2024
+>>>malloy
+run: TrainingData -> {
+  group_by: 
+    Date_month is `Date`.month
+    Date_year is `Date`.year
+    `Activity Type`
+  aggregate: 
+    total_miles
+    avg_heartrate
+    avg_cadence
+    avg_elevation
+  where:`Year`= "2024"
+  where: `Activity Type` = 'Run'
+}
+>>>markdown
+Monthly Running Breakdown 2023
+>>>malloy
+run: TrainingData -> {
+  group_by: 
+    Date_month is `Date`.month
+    Date_year is `Date`.year
+    `Activity Type`
+  aggregate: 
+    total_miles
+    avg_heartrate
+    avg_cadence
+    avg_elevation
+  where:`Year`= "2023"
+  where: `Activity Type` = 'Run'
+}
+>>>markdown
+Daily Training During Spring Track Season 
+>>>malloy
+run: TrainingData -> {
+  where: `Date`.day ? @2024-02-05 to @2024-05-06
+  group_by: Weekday, `Date`
+  aggregate: total_miles, avg_heartrate, avg_pace, avg_elevation, avg_cadence, avg_temp
+}
+>>>markdown
+Longest Run in Each State
+>>>malloy
+run: TrainingData -> {
+  where: State != null
+  group_by: State
+  aggregate: longest_run is longest_run {
+    where: Miles < 27
+  }
+}
+>>>markdown
+Miles Per Week During the Spring Track Season. 
+>>>malloy
+run: TrainingData -> {
+  group_by: 
+    Date_week is `Date`.week
+    Date_year is `Date`.year
+    `Activity Type`
+  aggregate: total_miles
+  Having: total_miles >0
+  order_by: Date_week
+  where: `Activity Type` = "Run"
+    where: `Date`.week ? @2024-02-20 to @2024-06-02
+
+}
